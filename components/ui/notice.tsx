@@ -62,3 +62,14 @@ export function PageSkeleton({ label = "Loading" }: { label?: string }) {
     </div>
   );
 }
+
+/** Shown when a role may not open a page (the service would refuse anyway). */
+export function ForbiddenNotice({ what = "this page" }: { what?: string }) {
+  return (
+    <ErrorNotice title="Your role can't open this">
+      <p>
+        Ask an owner or manager of this workspace if you need {what}.
+      </p>
+    </ErrorNotice>
+  );
+}
