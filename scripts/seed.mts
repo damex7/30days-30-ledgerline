@@ -32,7 +32,7 @@ if (!password || password.length < 10) {
   process.exit(1);
 }
 
-// Deterministic randomness: the same seed gives the same shape of data each run.
+// Seeded randomness: every run produces the same kind of data.
 let state = 30_2026;
 function rand(): number {
   state = (state + 0x6d2b79f5) | 0;
@@ -79,19 +79,11 @@ interface Built {
 }
 
 async function buildCatalogue(owner: Ctx, customers: SeedCustomer[], products: SeedProduct[]): Promise<Omit<Built, "workspaceId">> {
-  const customerIds: string[] = [];
-  for (const c of customers) {
-    customerIds.push(
-      await createCustomer(owner, {
-        name: c.name,
-        phone: c.phone ?? null,
-        whatsapp: c.whatsapp ?? null,
-        email: c.email ?? null,
-        notes: c.notes ?? null,
-        tags: c.tags ?? [],
-      }),
-    );
-  }
+  const customerIds = await Promise.all(
+    customers.map((c) =>
+      createCustomer(owner, { name: c.name, phone: c.phone ?? null, whatsapp: c.whatsapp ?? null, email: c.email ?? null, notes: c.notes ?? null, tags: c.tags ?? [] }),
+    ),
+  );
   const productRows: Built["products"] = [];
   for (const p of products) {
     const id = await createProduct(owner, {
@@ -118,7 +110,22 @@ interface Tally {
   payments: number;
 }
 
-/** Simulates ~90 days of trading through the real services. */
+interface Plan {
+  age: number;
+  seller: Ctx;
+  input: InvoiceInput;
+  outcome: "draft" | "void" | "paid_once" | "paid_twice" | "partly" | "unpaid";
+  voidReason: string;
+  share: number;
+  payDays: [number, number];
+}
+
+/**
+ * Simulates ~90 days of trading through the real services. Every random
+ * choice is made first (so the data is the same on every run), then each
+ * fortnight's sales are executed six at a time, which is also a fair test of
+ * the concurrency guarantees (gapless numbers, stock never below zero).
+ */
 async function simulate(
   built: Built,
   sellers: Ctx[],
@@ -129,27 +136,18 @@ async function simulate(
   const tally: Tally = { draft: 0, sent: 0, partly: 0, paid: 0, void: 0, skipped: 0, payments: 0 };
   const paidOnce: { invoiceId: string; paymentId: string }[] = [];
 
+  const plans: Plan[] = [];
   for (let age = 90; age >= 0; age--) {
     const day = addDays(today, -age);
-    // Restock fortnightly whatever has run below a third of its opening stock.
-    if (age % 14 === 0) {
-      for (const p of built.products) {
-        const current = await getProduct(managerCtx, p.id);
-        if (current.stockQuantity < p.opening / 3) {
-          await adjustStock(managerCtx, p.id, { reason: "restock", quantityDelta: p.opening - current.stockQuantity, note: "Supplier delivery" });
-        }
-      }
-    }
     const count = rand() < options.perDay % 1 ? Math.ceil(options.perDay) : Math.floor(options.perDay);
     for (let n = 0; n < count; n++) {
       const seller = pick(sellers);
       const items: InvoiceInput["items"] = [];
-      const lineCount = between(1, 3);
       const used = new Set<string>();
-      for (let l = 0; l < lineCount; l++) {
+      for (let l = between(1, 3); l > 0; l--) {
         if (options.services && rand() < 0.55) {
-          const s = pick(options.services);
-          items.push({ productId: null, description: s.description, quantity: 1, unitPrice: String(s.price) });
+          const sv = pick(options.services);
+          items.push({ productId: null, description: sv.description, quantity: 1, unitPrice: String(sv.price) });
         } else {
           const p = pick(built.products);
           if (used.has(p.id)) continue;
@@ -158,70 +156,110 @@ async function simulate(
         }
       }
       if (items.length === 0) continue;
-
       const roll = rand();
-      const draft = age < 4 && roll < 0.35;
-      const willVoid = !draft && roll > 0.96;
-      const input: InvoiceInput = {
-        customerId: pick(built.customers),
-        issueDate: day,
-        dueDate: addDays(day, pick([7, 7, 14, 30])),
-        items,
-        discount: rand() < 0.15 ? 50_000 : 0,
-        deliveryFee: rand() < 0.3 ? pick([150_000, 200_000, 250_000]) : 0,
-        notes: null,
-        clientRequestId: randomUUID(),
-        send: !draft,
-      };
-      let invoiceId: string;
-      try {
-        invoiceId = (await createInvoice(seller, input)).id;
-      } catch (error) {
-        // Not enough stock for this sale: the whole transaction (and the
-        // invoice number) rolled back, exactly as in the app. Skip it.
-        if (error instanceof ValidationError) {
-          tally.skipped++;
-          continue;
-        }
-        throw error;
-      }
-      if (draft) {
-        tally.draft++;
-        continue;
-      }
-      if (willVoid) {
-        await voidInvoice(managerCtx, invoiceId, pick(["Customer cancelled", "Entered twice by mistake", "Wrong customer"]));
-        tally.void++;
-        continue;
-      }
-
-      const total = await invoiceTotal(built.workspaceId, invoiceId);
       const fate = rand();
       const paidShare = age > 20 ? 0.72 : age > 7 ? 0.45 : 0.25;
       const partlyShare = age > 20 ? 0.14 : 0.25;
-      const payOn = (offset: number) => addDays(day, Math.min(age, offset));
-      if (fate < paidShare) {
-        if (rand() < 0.3) {
-          const first = Math.round((total * 0.4) / 100) * 100;
-          await pay(seller, invoiceId, first, payOn(between(0, 3)));
-          await pay(seller, invoiceId, total - first, payOn(between(4, 12)));
-          tally.payments += 2;
-        } else {
-          const id = await pay(seller, invoiceId, total, payOn(between(0, 6)));
-          paidOnce.push({ invoiceId, paymentId: id });
-          tally.payments++;
-        }
-        tally.paid++;
-      } else if (fate < paidShare + partlyShare) {
-        await pay(seller, invoiceId, Math.max(100, Math.round((total * pick([0.3, 0.5, 0.6])) / 100) * 100), payOn(between(0, 5)));
-        tally.partly++;
-        tally.payments++;
-      } else {
-        tally.sent++;
-      }
+      const draft = age < 4 && roll < 0.35;
+      const outcome: Plan["outcome"] = draft
+        ? "draft"
+        : roll > 0.96
+          ? "void"
+          : fate < paidShare
+            ? rand() < 0.3
+              ? "paid_twice"
+              : "paid_once"
+            : fate < paidShare + partlyShare
+              ? "partly"
+              : "unpaid";
+      plans.push({
+        age,
+        seller,
+        outcome,
+        voidReason: pick(["Customer cancelled", "Entered twice by mistake", "Wrong customer"]),
+        share: pick([0.3, 0.5, 0.6]),
+        payDays: [between(0, 5), between(4, 12)],
+        input: {
+          customerId: pick(built.customers),
+          issueDate: day,
+          dueDate: addDays(day, pick([7, 7, 14, 30])),
+          items,
+          discount: rand() < 0.15 ? 50_000 : 0,
+          deliveryFee: rand() < 0.3 ? pick([150_000, 200_000, 250_000]) : 0,
+          notes: null,
+          clientRequestId: randomUUID(),
+          send: !draft,
+        },
+      });
     }
   }
+
+  const execute = async (plan: Plan) => {
+    let invoiceId: string;
+    try {
+      invoiceId = (await createInvoice(plan.seller, plan.input)).id;
+    } catch (error) {
+      // Not enough stock for this sale: the whole transaction (and the
+      // invoice number) rolled back, exactly as in the app. Skip it.
+      if (error instanceof ValidationError) {
+        tally.skipped++;
+        return;
+      }
+      throw error;
+    }
+    const payOn = (offset: number) => addDays(plan.input.issueDate, Math.min(plan.age, offset));
+    if (plan.outcome === "draft") tally.draft++;
+    else if (plan.outcome === "void") {
+      await voidInvoice(managerCtx, invoiceId, plan.voidReason);
+      tally.void++;
+    } else if (plan.outcome === "unpaid") tally.sent++;
+    else {
+      const total = await invoiceTotal(built.workspaceId, invoiceId);
+      if (plan.outcome === "paid_twice") {
+        const first = Math.round((total * 0.4) / 100) * 100;
+        await pay(plan.seller, invoiceId, first, payOn(plan.payDays[0]));
+        await pay(plan.seller, invoiceId, total - first, payOn(plan.payDays[1]));
+        tally.payments += 2;
+        tally.paid++;
+      } else if (plan.outcome === "paid_once") {
+        paidOnce.push({ invoiceId, paymentId: await pay(plan.seller, invoiceId, total, payOn(plan.payDays[0])) });
+        tally.payments++;
+        tally.paid++;
+      } else {
+        await pay(plan.seller, invoiceId, Math.max(100, Math.round((total * plan.share) / 100) * 100), payOn(plan.payDays[0]));
+        tally.partly++;
+        tally.payments++;
+      }
+    }
+  };
+
+  // Fortnight by fortnight: restock what ran low, then sell, 6 at a time.
+  for (let blockStart = 90; blockStart >= 0; blockStart -= 14) {
+    const low = await db.query<{ id: string; stock_quantity: string }>(
+      "SELECT id, stock_quantity FROM products WHERE workspace_id = $1",
+      [built.workspaceId],
+    );
+    for (const p of built.products) {
+      const current = Number(low.find((r) => r.id === p.id)?.stock_quantity ?? 0);
+      if (current < p.opening / 3) {
+        await adjustStock(managerCtx, p.id, { reason: "restock", quantityDelta: p.opening - current, note: "Supplier delivery" });
+      }
+    }
+    const block = plans.filter((pl) => pl.age <= blockStart && pl.age > blockStart - 14);
+    for (let i = 0; i < block.length; i += 6) await Promise.all(block.slice(i, i + 6).map(execute));
+  }
   return { tally, paidOnce };
+}
+
+/** Guarantees a draft and a void exist, whatever the dice said. */
+async function ensureEveryStatus(built: Built, seller: Ctx, managerCtx: Ctx): Promise<void> {
+  const today = todayInLagos();
+  const line = (i: number) => [{ productId: built.products[i % built.products.length]!.id, quantity: 1 }];
+  for (const [i, send] of [[0, false], [1, false]] as const) {
+    await createInvoice(seller, { customerId: built.customers[i]!, issueDate: today, dueDate: addDays(today, 7), items: line(i), discount: 0, deliveryFee: 0, notes: "Waiting for the customer to confirm", clientRequestId: randomUUID(), send });
+  }
+  const v = await createInvoice(seller, { customerId: built.customers[2]!, issueDate: addDays(today, -5), dueDate: addDays(today, 2), items: line(2), discount: 0, deliveryFee: 0, notes: null, clientRequestId: randomUUID(), send: true });
+  await voidInvoice(managerCtx, v.id, "Customer cancelled the order");
 }
 
 async function pay(ctx: Ctx, invoiceId: string, amount: number, paidOn: string): Promise<string> {
@@ -300,49 +338,60 @@ async function main() {
   if (removed.length) console.log(`  removed ${removed.length} previous seed workspace(s)`);
   await db.query("DELETE FROM sessions WHERE user_id = ANY($1::uuid[])", [[ownerId, managerId, staffId, abujaOwnerId]]);
 
-  // ---- Lagos provision store: owner, manager, staff.
-  const lagosId = await createWorkspaceFor(ownerId, LAGOS.name);
-  await addMember(lagosId, managerId, "manager");
-  await addMember(lagosId, staffId, "staff");
-  const lOwner = await contextFor(ownerId, lagosId);
-  const lManager = await contextFor(managerId, lagosId);
-  const lStaff = await contextFor(staffId, lagosId);
-  await updateWorkspaceDetails(lOwner, { name: LAGOS.name, ...LAGOS.details });
-  const lagos: Built = { workspaceId: lagosId, ...(await buildCatalogue(lOwner, LAGOS.customers, LAGOS.products)) };
-  console.log(`  ${LAGOS.name}: ${lagos.customers.length} customers, ${lagos.products.length} products`);
-  const lagosRun = await simulate(lagos, [lOwner, lManager, lStaff, lStaff], lManager, { perDay: 0.8 });
-  console.log("  invoices:", lagosRun.tally);
+  // The two businesses are built side by side (independent data).
+  const buildLagos = async () => {
+    // ---- Lagos provision store: owner, manager, staff.
+    const lagosId = await createWorkspaceFor(ownerId, LAGOS.name);
+    await addMember(lagosId, managerId, "manager");
+    await addMember(lagosId, staffId, "staff");
+    const lOwner = await contextFor(ownerId, lagosId);
+    const lManager = await contextFor(managerId, lagosId);
+    const lStaff = await contextFor(staffId, lagosId);
+    await updateWorkspaceDetails(lOwner, { name: LAGOS.name, ...LAGOS.details });
+    const lagos: Built = { workspaceId: lagosId, ...(await buildCatalogue(lOwner, LAGOS.customers, LAGOS.products)) };
+    console.log(`  ${LAGOS.name}: ${lagos.customers.length} customers, ${lagos.products.length} products`);
+    const lagosRun = await simulate(lagos, [lOwner, lManager, lStaff, lStaff], lManager, { perDay: 0.8 });
+    console.log("  invoices:", lagosRun.tally);
 
-  // One payment reversed ("the transfer bounced"): a negative row, nothing deleted.
-  const toReverse = lagosRun.paidOnce[3] ?? lagosRun.paidOnce[0];
-  if (toReverse) {
-    await reversePayment(lManager, { paymentId: toReverse.paymentId, reason: "Transfer was reversed by the bank", clientRequestId: randomUUID() });
-    console.log("  reversed one payment");
-  }
-  await shapeStock(lManager, lagos, ["SUGAR-50KG", "MILO-500", "RICE-50KG"], ["SARDINE-CTN"]);
-  console.log(`  expenses: ${await seedExpenses([lOwner, lManager, lStaff], EXPENSES_LAGOS)}`);
+    // One payment reversed ("the transfer bounced"): a negative row, nothing deleted.
+    const toReverse = lagosRun.paidOnce[3] ?? lagosRun.paidOnce[0];
+    if (toReverse) {
+      await reversePayment(lManager, { paymentId: toReverse.paymentId, reason: "Transfer was reversed by the bank", clientRequestId: randomUUID() });
+      console.log("  reversed one payment");
+    }
+    await ensureEveryStatus(lagos, lStaff, lManager);
+    await shapeStock(lManager, lagos, ["SUGAR-50KG", "MILO-500", "RICE-50KG"], ["SARDINE-CTN"]);
+    console.log(`  expenses: ${await seedExpenses([lOwner, lManager, lStaff], EXPENSES_LAGOS)}`);
 
-  // A pending invitation (the link is printed once; only its hash is stored).
-  const inviteToken = randomToken();
-  await db.query(
-    `INSERT INTO invitations (workspace_id, email, role, token_hash, invited_by, expires_at)
-     VALUES ($1, 'chioma.new@example.com', 'staff', $2, $3, now() + interval '7 days')`,
-    [lagosId, tokenHashParam(inviteToken), ownerId],
-  );
+    // A pending invitation (the link is printed once; only its hash is stored).
+    const inviteToken = randomToken();
+    await db.query(
+      `INSERT INTO invitations (workspace_id, email, role, token_hash, invited_by, expires_at)
+       VALUES ($1, 'chioma.new@example.com', 'staff', $2, $3, now() + interval '7 days')`,
+      [lagosId, tokenHashParam(inviteToken), ownerId],
+    );
 
-  // ---- Abuja tailoring business. Tunde also works here (as staff), to show
-  // one person in two workspaces with different roles.
-  const abujaId = await createWorkspaceFor(abujaOwnerId, ABUJA.name);
-  await addMember(abujaId, managerId, "staff");
-  const aOwner = await contextFor(abujaOwnerId, abujaId);
-  const aStaff = await contextFor(managerId, abujaId);
-  await updateWorkspaceDetails(aOwner, { name: ABUJA.name, ...ABUJA.details });
-  const abuja: Built = { workspaceId: abujaId, ...(await buildCatalogue(aOwner, ABUJA.customers, ABUJA.products)) };
-  console.log(`  ${ABUJA.name}: ${abuja.customers.length} customers, ${abuja.products.length} products`);
-  const abujaRun = await simulate(abuja, [aOwner, aOwner, aStaff], aOwner, { perDay: 0.4, services: ABUJA.services });
-  console.log("  invoices:", abujaRun.tally);
-  await shapeStock(aOwner, abuja, ["ASOOKE-SET"], ["LACE-5Y"]);
-  console.log(`  expenses: ${await seedExpenses([aOwner, aStaff], EXPENSES_ABUJA)}`);
+    return { lagosId, lOwner, lagos, inviteToken };
+  };
+  const buildAbuja = async () => {
+    // ---- Abuja tailoring business. Tunde also works here (as staff), to show
+    // one person in two workspaces with different roles.
+    const abujaId = await createWorkspaceFor(abujaOwnerId, ABUJA.name);
+    await addMember(abujaId, managerId, "staff");
+    const aOwner = await contextFor(abujaOwnerId, abujaId);
+    const aStaff = await contextFor(managerId, abujaId);
+    await updateWorkspaceDetails(aOwner, { name: ABUJA.name, ...ABUJA.details });
+    const abuja: Built = { workspaceId: abujaId, ...(await buildCatalogue(aOwner, ABUJA.customers, ABUJA.products)) };
+    console.log(`  ${ABUJA.name}: ${abuja.customers.length} customers, ${abuja.products.length} products`);
+    const abujaRun = await simulate(abuja, [aOwner, aOwner, aStaff], aOwner, { perDay: 0.4, services: ABUJA.services });
+    console.log("  invoices:", abujaRun.tally);
+    await ensureEveryStatus(abuja, aStaff, aOwner);
+    await shapeStock(aOwner, abuja, ["ASOOKE-SET"], ["LACE-5Y"]);
+    console.log(`  expenses: ${await seedExpenses([aOwner, aStaff], EXPENSES_ABUJA)}`);
+
+    return { abujaId };
+  };
+  const [{ lagosId, lOwner, lagos, inviteToken }, { abujaId }] = await Promise.all([buildLagos(), buildAbuja()]);
 
   // ---- A little assistant history and one pending proposal (no AI calls).
   await seedAi(lOwner, lagos.customers, lagos.products);

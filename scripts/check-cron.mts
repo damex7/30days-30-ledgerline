@@ -8,6 +8,8 @@ import { assert, check, invoiceInput, type World } from "./check-ledgerline.mts"
 export async function cronChecks(world: World): Promise<void> {
   await check("the daily cron is idempotent and queues one digest per workspace owner", async () => {
     const today = todayInLagos();
+    // Digests skip demo users; the check's owner must be a normal user here.
+    await db.query("UPDATE users SET is_demo = false WHERE id = $1", [world.a.owner.userId]);
     // An overdue invoice so workspace A has something to report.
     await createInvoice(world.a.owner, invoiceInput(world.a.customerId, [{ description: "Old sale", quantity: 1, unitPrice: "5000" }], { issueDate: addDays(today, -10), dueDate: addDays(today, -3) }));
     await db.query("DELETE FROM cron_runs WHERE job = 'daily' AND run_date = $1", [today]);
