@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/*
+  Ledgerline tokens: about 60% white, 25% gold, 15% black.
+
+  Gold is a fill colour, not a text colour: #B8892B on white is only ~3.2:1,
+  enough for large accents, rules and fills (3:1) but not for body text
+  (4.5:1). Gold-coloured text and links on white therefore use "deep gold"
+  #7A5A0E (~6.4:1). On gold fills the text is black (~6:1).
+  The focus ring is black inside a gold ring, because gold alone on the cream
+  cards falls just under 3:1. In dark mode the brighter gold #E2B94A works
+  for text, links and the ring.
+  No red or green anywhere: states are told apart by words and shapes.
+  scripts/check-contrast.mjs verifies every pair listed there.
+*/
+
+:root {
+  --page: #ffffff;
+  --card: #faf7ef;
+  --ink: #121110;
+  --ink-2: #4a463c;
+  --gold: #b8892b;
+  --gold-ink: #7a5a0e;
+  --on-gold: #121110;
+  --line: #e5ddc8;
+  --field: #7c735f;
+  --night: #121110;
+  --night-ink: #f6f2e7;
+  --night-gold: #e2b94a;
+  --night-line: #3a3428;
+  --focus-inner: #121110;
+  --focus-outer: #b8892b;
+  --tint: #f3ecdb;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0c0b09;
+    --card: #16140f;
+    --ink: #f6f2e7;
+    --ink-2: #bfb7a3;
+    --gold: #e2b94a;
+    --gold-ink: #e2b94a;
+    --on-gold: #121110;
+    --line: #2e2a1f;
+    --field: #8a8170;
+    --night: #050504;
+    --night-ink: #f6f2e7;
+    --night-gold: #e2b94a;
+    --night-line: #2e2a1f;
+    --focus-inner: #e2b94a;
+    --focus-outer: #0c0b09;
+    --tint: #211d15;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --page: #0c0b09;
+  --card: #16140f;
+  --ink: #f6f2e7;
+  --ink-2: #bfb7a3;
+  --gold: #e2b94a;
+  --gold-ink: #e2b94a;
+  --on-gold: #121110;
+  --line: #2e2a1f;
+  --field: #8a8170;
+  --night: #050504;
+  --night-ink: #f6f2e7;
+  --night-gold: #e2b94a;
+  --night-line: #2e2a1f;
+  --focus-inner: #e2b94a;
+  --focus-outer: #0c0b09;
+  --tint: #211d15;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-on-gold: var(--on-gold);
+  --color-line: var(--line);
+  --color-field: var(--field);
+  --color-night: var(--night);
+  --color-night-ink: var(--night-ink);
+  --color-night-gold: var(--night-gold);
+  --color-night-line: var(--night-line);
+  --color-tint: var(--tint);
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Element styles live in the base layer so utilities always win over them. */
+@layer base {
+  html {
+    background: var(--page);
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  a {
+    color: var(--gold-ink);
+    text-underline-offset: 3px;
+  }
+  /* Visible focus everywhere: black ring inside gold (dark: gold ring). */
+  :focus-visible {
+    outline: 2px solid var(--focus-inner);
+    outline-offset: 1px;
+    box-shadow: 0 0 0 5px var(--focus-outer);
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--gold);
+    color: var(--on-gold);
+  }
+  input,
+  select,
+  textarea {
+    color: var(--ink);
+    background: var(--page);
+  }
+  table {
+    border-collapse: collapse;
+  }
+}
+
+@layer components {
+  /* Money and counts: tabular figures so columns of numbers line up. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .field {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1.5px solid var(--field);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--page);
+    color: var(--ink);
+  }
+  .field[aria-invalid="true"] {
+    border: 3px solid var(--ink);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--on-gold);
+    border-color: var(--gold);
+  }
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--gold) 85%, var(--ink));
+  }
+  .btn-secondary {
+    background: var(--page);
+    color: var(--ink);
+    border-color: var(--field);
+  }
+  .btn-secondary:hover {
+    background: var(--tint);
+  }
+  .btn-dark {
+    background: var(--ink);
+    color: var(--page);
+    border-color: var(--ink);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+  }
+  .btn-ghost:hover {
+    background: var(--tint);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+  }
+
+  /*
+    Tables become stacked cards on narrow screens: each cell shows its
+    column name (data-label) so nothing depends on seeing the header row.
+  */
+  @media (max-width: 47.99rem) {
+    .stack-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .stack-table,
+    .stack-table tbody,
+    .stack-table tr,
+    .stack-table td,
+    .stack-table th[scope="row"] {
+      display: block;
+      width: 100%;
+    }
+    .stack-table tr {
+      border: 1px solid var(--line);
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+      background: var(--card);
+    }
+    .stack-table td,
+    .stack-table th[scope="row"] {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.35rem 0;
+      border: 0;
+      text-align: right;
+    }
+    .stack-table td::before,
+    .stack-table th[scope="row"]::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: var(--ink-2);
+      text-align: left;
+    }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--card), var(--tint), var(--card));
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 0.5rem;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
