@@ -1,10 +1,11 @@
-import Link from "next/link";
+import { startDemoAction } from "./demo-actions";
+import { DemoSubmit } from "./demo-submit";
 
-// Replaced in stage 5 by the real "open a sandbox" form.
+/** Opens a private sandbox workspace (deleted after 24 hours). */
 export function DemoButton() {
   return (
-    <Link href="/sign-in" className="btn btn-primary">
-      Try the demo
-    </Link>
+    <form action={startDemoAction}>
+      <DemoSubmit />
+    </form>
   );
 }

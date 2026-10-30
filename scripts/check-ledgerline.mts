@@ -4,7 +4,9 @@
 //   npm run check:ledgerline
 //
 // It creates two throwaway workspaces ("Check A/B …") with their own users,
-// runs every check, then deletes them. The AI checks always use the MOCK
+// runs every check, then deletes them. (They are not marked as demo, so the
+// daily-digest check can see them. If a run crashes before tearing down,
+// delete the leftover "Check A/B" workspaces by hand.) The AI checks always use the MOCK
 // provider, so no API key or network is needed.
 
 import { randomUUID } from "node:crypto";
@@ -72,7 +74,7 @@ async function makeUser(label: string): Promise<string> {
 }
 
 async function makeWorkspace(name: string, members: [string, "owner" | "manager" | "staff"][]): Promise<string> {
-  const rows = await db.query<{ id: string }>("INSERT INTO workspaces (name, is_demo) VALUES ($1, true) RETURNING id", [name]);
+  const rows = await db.query<{ id: string }>("INSERT INTO workspaces (name) VALUES ($1) RETURNING id", [name]);
   const id = rows[0]!.id;
   for (const [userId, role] of members) {
     await db.query("INSERT INTO memberships (workspace_id, user_id, role) VALUES ($1, $2, $3)", [id, userId, role]);

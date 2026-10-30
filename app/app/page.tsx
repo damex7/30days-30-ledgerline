@@ -171,7 +171,9 @@ async function Content() {
           )}
         </section>
       </div>
-      <DailyJobs />
+      <Suspense fallback={null}>
+        <DailyJobs />
+      </Suspense>
     </>
   );
 }
