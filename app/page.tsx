@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ProviderBadge } from "./provider-badge";
 import { DemoButton } from "./demo-button";
 import { Suspense } from "react";
+import { LandingNotice } from "./landing-notice";
 
 const FEATURES = [
   {
@@ -24,7 +25,7 @@ const FEATURES = [
   },
 ];
 
-export default function LandingPage() {
+export default function LandingPage(props: PageProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-8">
@@ -58,6 +59,10 @@ export default function LandingPage() {
                 Start your own workspace
               </Link>
             </div>
+            <Suspense fallback={null}>
+              <LandingNotice searchParams={props.searchParams} />
+            </Suspense>
+            <p className="mt-3 text-sm text-ink-2">The demo opens a private sandbox business, just for you, deleted after 24 hours.</p>
             <div className="mt-6">
               <ProviderBadge />
             </div>

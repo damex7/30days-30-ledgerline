@@ -1,10 +1,13 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { DatabaseUnavailableError } from "@/lib/db";
 import { ForbiddenError, NotFoundError, RateLimitedError, UnauthenticatedError, ValidationError, ConflictError } from "@/lib/errors";
 import { logError } from "@/lib/log";
 
 /** Route handlers: known errors become clean JSON with the right status. */
 export function errorResponse(error: unknown): Response {
+  // Let Next.js handle its own control-flow errors (prerender bail-outs, redirects).
+  unstable_rethrow(error);
   if (error instanceof UnauthenticatedError) return Response.json({ error: "Please sign in." }, { status: 401 });
   if (error instanceof NotFoundError) return Response.json({ error: "Not found." }, { status: 404 });
   if (error instanceof ForbiddenError) return Response.json({ error: error.message }, { status: 403 });
