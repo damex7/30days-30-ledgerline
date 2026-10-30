@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { saveInvoiceAction } from "./actions";
-import { IDLE } from "@/lib/forms";
+import { IDLE, type FormState } from "@/lib/forms";
 import { formatNaira, koboToInput, parseNaira } from "@/lib/money";
 import { fieldId, Field, SelectField, TextareaField } from "@/components/ui/field";
 import { FormMessage, SubmitButton } from "@/components/ui/form-status";
@@ -52,13 +52,18 @@ export function InvoiceForm({
   products,
   defaults,
   requestId,
+  action: submit = saveInvoiceAction,
+  proposalId,
 }: {
   customers: { id: string; name: string }[];
   products: ProductOption[];
   defaults: InvoiceFormDefaults;
   requestId: string;
+  /** Proposal approval reuses this form with its own action. */
+  action?: (prev: FormState, formData: FormData) => Promise<FormState>;
+  proposalId?: string;
 }) {
-  const [state, action] = useActionState(saveInvoiceAction, IDLE);
+  const [state, action] = useActionState(submit, IDLE);
   const [lines, setLines] = useState<LineDraft[]>(() => (defaults.lines?.length ? defaults.lines : [newLine()]));
   const [discount, setDiscount] = useState(defaults.discount ?? "");
   const [delivery, setDelivery] = useState(defaults.deliveryFee ?? "");
@@ -98,6 +103,7 @@ export function InvoiceForm({
       <input type="hidden" name="clientRequestId" value={requestId} />
       <input type="hidden" name="items" value={items} />
       {defaults.invoiceId ? <input type="hidden" name="invoiceId" value={defaults.invoiceId} /> : null}
+      {proposalId ? <input type="hidden" name="proposalId" value={proposalId} /> : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <SelectField
@@ -246,10 +252,10 @@ export function InvoiceForm({
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton name="intent" value="send" pendingText="Saving…">
-          Save and send
+          {proposalId ? "Approve: create and send" : "Save and send"}
         </SubmitButton>
         <SubmitButton name="intent" value="draft" className="btn btn-secondary" pendingText="Saving…">
-          Save as draft
+          {proposalId ? "Approve: create as draft" : "Save as draft"}
         </SubmitButton>
       </div>
       <p className="text-sm text-ink-2">Sending takes the items out of stock. A sent invoice can&apos;t be edited, only voided.</p>
