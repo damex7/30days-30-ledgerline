@@ -35,10 +35,12 @@ const retryable = (e: unknown) => e instanceof ProviderError && (e.kind === "rat
 class FallbackProvider implements AiProvider {
   readonly name = "gemini" as const;
   usedFallback = false;
-  constructor(
-    private readonly primary: AiProvider,
-    private readonly backup: AiProvider,
-  ) {}
+  private readonly primary: AiProvider;
+  private readonly backup: AiProvider;
+  constructor(primary: AiProvider, backup: AiProvider) {
+    this.primary = primary;
+    this.backup = backup;
+  }
 
   private fallBack(reason: string) {
     this.usedFallback = true;

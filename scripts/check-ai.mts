@@ -18,7 +18,10 @@ import { assert, check, invoiceInput, rejects, type World } from "./check-ledger
 class Scripted implements AiProvider {
   readonly name = "gemini" as const;
   calls = 0;
-  constructor(private readonly step: (turn: number, req: ChatRequest) => StreamChunk[]) {}
+  private readonly step: (turn: number, req: ChatRequest) => StreamChunk[];
+  constructor(step: (turn: number, req: ChatRequest) => StreamChunk[]) {
+    this.step = step;
+  }
   async *stream(req: ChatRequest): AsyncIterable<StreamChunk> {
     this.calls++;
     for (const chunk of this.step(this.calls, req)) yield chunk;

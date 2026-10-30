@@ -16,7 +16,10 @@ const isFile = (p) => existsSync(p) && statSync(p).isFile();
 
 registerHooks({
   resolve(specifier, context, next) {
-    // next/headers, next/navigation ... are CommonJS files without an exports map.
+    // Server code gets the react-server build of next/navigation (the default
+    // one is the client build, which needs React's client APIs).
+    if (specifier === "next/navigation") return next("next/dist/client/components/navigation.react-server.js", context);
+    // next/headers, next/cache ... are CommonJS files without an exports map.
     if (/^next\/[a-z-]+$/.test(specifier)) return next(`${specifier}.js`, context);
     // React's server build is CommonJS; Node can't see its named export
     // `cache` from ESM, so our own files get a small re-exporting shim.
