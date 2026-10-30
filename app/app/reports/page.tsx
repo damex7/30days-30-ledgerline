@@ -105,7 +105,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/app/reports
         </section>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="card p-4" aria-labelledby="tp">
           <h2 id="tp" className="mb-3 text-xl">Top products</h2>
           <BarChart

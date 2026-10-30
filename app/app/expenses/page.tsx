@@ -27,7 +27,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/app/expense
   const seeAll = can(ctx.role, "expense.view_all");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section aria-labelledby="list">
         <h2 id="list" className="sr-only">
           Recorded expenses

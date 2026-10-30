@@ -18,9 +18,9 @@ const PERIOD_LABEL = { today: "Today", this_week: "This week", this_month: "This
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="font-display text-2xl font-semibold tabular-nums">{value}</dd>
+      <dd className="whitespace-nowrap font-display text-xl font-semibold tabular-nums xl:text-2xl">{value}</dd>
       {hint ? <dd className="text-xs text-ink-2">{hint}</dd> : null}
     </div>
   );
@@ -46,16 +46,16 @@ async function Content() {
         }
       />
 
-      <section aria-labelledby="periods" className="grid gap-4 md:grid-cols-3">
+      <section aria-labelledby="periods" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <h2 id="periods" className="sr-only">
           Today, this week and this month
         </h2>
         {d.periods.map((p) => (
-          <article key={p.key} className="card p-4" aria-labelledby={`p-${p.key}`}>
+          <article key={p.key} className="card p-4 sm:last:col-span-2 xl:last:col-span-1" aria-labelledby={`p-${p.key}`}>
             <h3 id={`p-${p.key}`} className="mb-3 border-b border-line pb-2 text-lg">
               {PERIOD_LABEL[p.key]}
             </h3>
-            <dl className="grid grid-cols-2 gap-3">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
               <Stat label="Sales" value={formatNaira(p.summary.salesKobo, { showKobo: false })} hint={`${p.summary.invoiceCount} invoices`} />
               <Stat label="Payments in" value={formatNaira(p.summary.paymentsKobo, { showKobo: false })} />
               {p.summary.expensesKobo !== null ? <Stat label="Expenses" value={formatNaira(p.summary.expensesKobo, { showKobo: false })} /> : null}
@@ -67,7 +67,7 @@ async function Content() {
         ))}
       </section>
 
-      <section aria-labelledby="owed" className="mt-6 grid gap-4 md:grid-cols-2">
+      <section aria-labelledby="owed" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="card p-4">
           <h2 id="owed" className="text-lg">
             Money owed to you
@@ -96,7 +96,7 @@ async function Content() {
         <SalesLineChart title="Sales and payments received per day, last 30 days" days={d.days} />
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="overdue-list" className="card p-4">
           <h2 id="overdue-list" className="mb-3 text-xl">
             Oldest overdue invoices
@@ -141,7 +141,7 @@ async function Content() {
         </section>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="top-products" className="card p-4">
           <h2 id="top-products" className="mb-3 text-xl">
             Top products this month

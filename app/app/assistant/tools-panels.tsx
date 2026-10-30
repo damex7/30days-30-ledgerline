@@ -56,7 +56,7 @@ export function ReminderForm({ invoices, firstRequestId }: { invoices: { id: str
             </option>
           ))}
         </SelectField>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <SelectField name="tone" label="Tone" required defaultValue="polite">
             <option value="polite">Polite</option>
             <option value="firm">Firm</option>

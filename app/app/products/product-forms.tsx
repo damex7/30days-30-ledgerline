@@ -39,7 +39,7 @@ export function ProductForm({ defaults, workspaceLowStock }: { defaults?: Produc
     <form action={action} className="max-w-2xl space-y-4" noValidate>
       <FormMessage state={state} labels={LABELS} />
       {defaults ? <input type="hidden" name="id" value={defaults.id} /> : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field name="name" label="Name" required defaultValue={value("name", defaults?.name ?? "")} errors={errors.name} />
         <Field
           name="sku"
@@ -50,7 +50,7 @@ export function ProductForm({ defaults, workspaceLowStock }: { defaults?: Produc
           errors={errors.sku}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field name="unit" label="Unit" required hint="bag, carton, yard…" defaultValue={value("unit", defaults?.unit ?? "unit")} errors={errors.unit} />
         <Field
           name="price"
@@ -70,7 +70,7 @@ export function ProductForm({ defaults, workspaceLowStock }: { defaults?: Produc
           errors={errors.cost}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           name="lowStockLevel"
           label="Low-stock level"

@@ -28,7 +28,7 @@ export function CustomerForm({ defaults = {} }: { defaults?: CustomerDefaults })
       <FormMessage state={state} labels={LABELS} />
       {defaults.id ? <input type="hidden" name="id" value={defaults.id} /> : null}
       <Field name="name" label="Name" required defaultValue={value("name", defaults.name)} errors={errors.name} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           name="phone"
           label="Phone"

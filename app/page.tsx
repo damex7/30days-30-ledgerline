@@ -119,7 +119,7 @@ export default function LandingPage(props: PageProps<"/">) {
             <h2 id="what" className="mb-8 text-3xl">
               What Ledgerline does
             </h2>
-            <ul className="grid gap-6 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {FEATURES.map((f) => (
                 <li key={f.title} className="border-l-4 border-gold pl-4">
                   <h3 className="text-xl">{f.title}</h3>

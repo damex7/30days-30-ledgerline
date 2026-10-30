@@ -58,7 +58,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/app/team">[
         <p className="mt-2 text-sm text-ink-2">A business always keeps at least one owner: the last owner can&apos;t be removed or demoted.</p>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="invite" className="card p-4">
           <h2 id="invite" className="mb-3 text-xl">Invite someone</h2>
           <InviteForm />

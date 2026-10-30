@@ -34,8 +34,11 @@ export interface InvoiceFormDefaults {
   lines?: LineDraft[];
 }
 
+// Keys only need to be unique within this form. The first line's key is
+// fixed so server and browser render the same HTML; added lines (client
+// only) use a counter.
 let counter = 0;
-const newLine = (): LineDraft => ({ key: `l${++counter}`, productId: "", description: "", quantity: "1", unitPrice: "" });
+const newLine = (key = `l${++counter}`): LineDraft => ({ key, productId: "", description: "", quantity: "1", unitPrice: "" });
 
 const LABELS: Record<string, string> = {
   customerId: "Customer",
@@ -64,7 +67,7 @@ export function InvoiceForm({
   proposalId?: string;
 }) {
   const [state, action] = useActionState(submit, IDLE);
-  const [lines, setLines] = useState<LineDraft[]>(() => (defaults.lines?.length ? defaults.lines : [newLine()]));
+  const [lines, setLines] = useState<LineDraft[]>(() => (defaults.lines?.length ? defaults.lines : [newLine("first")]));
   const [discount, setDiscount] = useState(defaults.discount ?? "");
   const [delivery, setDelivery] = useState(defaults.deliveryFee ?? "");
   const errors = state.status === "error" ? state.fieldErrors : {};
@@ -105,7 +108,7 @@ export function InvoiceForm({
       {defaults.invoiceId ? <input type="hidden" name="invoiceId" value={defaults.invoiceId} /> : null}
       {proposalId ? <input type="hidden" name="proposalId" value={proposalId} /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <SelectField
           name="customerId"
           label="Customer"
@@ -220,7 +223,7 @@ export function InvoiceForm({
         </button>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           name="discount"
           label="Discount (₦)"

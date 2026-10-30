@@ -44,7 +44,7 @@ async function Content({ params, searchParams }: PageProps<"/app/products/[id]">
           <InfoNotice>{notice}</InfoNotice>
         </div>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card p-4">
           <p className="text-sm font-semibold text-ink-2">In stock</p>
           <p className="mt-1 font-display text-3xl font-semibold">
@@ -113,7 +113,7 @@ async function Content({ params, searchParams }: PageProps<"/app/products/[id]">
       </section>
 
       {manage && !product.archivedAt ? (
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <section className="card p-4" aria-labelledby="adjust">
             <h2 id="adjust" className="mb-3 text-xl">
               Restock or adjust

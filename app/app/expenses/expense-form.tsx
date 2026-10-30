@@ -25,7 +25,7 @@ export function ExpenseForm({ today, requestId }: { today: string; requestId: st
           </option>
         ))}
       </SelectField>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field name="amount" label="Amount (₦)" required inputMode="decimal" defaultValue={v?.amount ?? ""} errors={errors.amount} />
         <Field name="spentOn" label="Date" type="date" required defaultValue={v?.spentOn ?? today} errors={errors.spentOn} />
       </div>

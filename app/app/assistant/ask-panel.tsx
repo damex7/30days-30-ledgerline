@@ -228,7 +228,7 @@ export function AskPanel({ initial, maxChars }: { initial: Exchange[]; maxChars:
             ) : null}
             {e.status === "done" ? (
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-2">
-                {e.fellBack ? <span className="rounded border border-dashed border-ink px-2 py-0.5">Answered by the built-in mock (the AI provider was busy)</span> : null}
+                {e.fellBack ? <span className="rounded border border-dashed border-ink px-2 py-0.5">Answered by the built-in mock (the AI provider was busy or unreachable)</span> : null}
                 {e.runId ? <Feedback runId={e.runId} initial={e.rating} /> : null}
               </div>
             ) : null}

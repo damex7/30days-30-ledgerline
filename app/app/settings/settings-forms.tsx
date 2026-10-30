@@ -28,12 +28,12 @@ export function DetailsForm({ defaults }: { defaults: WorkspaceDetailsInput }) {
       <FormMessage state={state} labels={LABELS} />
       <Field name="name" label="Business name" required defaultValue={val("name")} errors={errors.name} />
       <TextareaField name="businessAddress" label="Address" rows={2} defaultValue={val("businessAddress")} errors={errors.businessAddress} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field name="businessPhone" label="Phone" type="tel" defaultValue={val("businessPhone")} errors={errors.businessPhone} />
         <Field name="businessEmail" label="Email" type="email" defaultValue={val("businessEmail")} errors={errors.businessEmail} />
       </div>
       <Field name="bankDetails" label="Bank details" hint="Printed on invoices and reminders, like: GTBank 0123456789, Mama Ngozi Provisions" defaultValue={val("bankDetails")} errors={errors.bankDetails} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field name="invoicePrefix" label="Invoice prefix" required hint="Letters and digits; numbers continue from the counter." defaultValue={val("invoicePrefix")} errors={errors.invoicePrefix} />
         <Field name="lowStockDefault" label="Default low-stock level" required inputMode="numeric" defaultValue={val("lowStockDefault")} errors={errors.lowStockDefault} />
       </div>

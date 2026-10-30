@@ -64,7 +64,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/app/assista
         <AskPanel initial={initial} maxChars={MAX_QUESTION_CHARS} />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {can(ctx.role, "invoice.create") ? (
           <section aria-labelledby="draft" className="card p-4">
             <h2 id="draft" className="mb-1 text-xl">

@@ -82,9 +82,9 @@ async function Content({ params, searchParams }: PageProps<"/app/invoices/[id]">
         ) : null}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {/* The print view: plain, black on white, nothing interactive. */}
-        <article className="rounded-xl border border-line bg-page p-5 print:border-0 print:p-0 sm:p-8" aria-labelledby="invoice-title">
+        <article className="min-w-0 rounded-xl border border-line bg-page p-4 print:border-0 print:p-0 sm:p-8" aria-labelledby="invoice-title">
           <header className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-ink pb-4">
             <div>
               <p className="flex items-center gap-2 font-display text-2xl font-semibold">
@@ -118,13 +118,14 @@ async function Content({ params, searchParams }: PageProps<"/app/invoices/[id]">
             <dd>{formatDate(invoice.dueDate)}</dd>
           </dl>
 
-          <table className="mt-6 w-full text-sm">
+          <div className="relative mt-6 overflow-x-auto">
+          <table className="w-full min-w-[17rem] text-sm">
             <caption className="sr-only">Items on {invoice.label}</caption>
             <thead>
               <tr className="bg-night text-left text-night-ink print:bg-black print:text-white">
                 <th scope="col" className="px-2 py-2">Item</th>
                 <th scope="col" className="num px-2 py-2">Qty</th>
-                <th scope="col" className="num px-2 py-2">Unit price</th>
+                <th scope="col" className="num px-2 py-2">Price</th>
                 <th scope="col" className="num px-2 py-2">Amount</th>
               </tr>
             </thead>
@@ -169,6 +170,7 @@ async function Content({ params, searchParams }: PageProps<"/app/invoices/[id]">
               </tr>
             </tfoot>
           </table>
+          </div>
           {invoice.notes ? <p className="mt-6 whitespace-pre-line text-sm">{invoice.notes}</p> : null}
           {business.bankDetails ? (
             <p className="mt-4 text-sm">
